@@ -1,0 +1,30 @@
+/* Basic reset for margin and padding */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+}
+
+/* Container for the navigation links */
+nav {
+    position: relative;
+    top: 10px;
+    left: 10px;
+}
+
+/* Style for links */
+nav a {
+    display: inline-block;
+    margin-right: 15px;
+    text-decoration: none;
+    color: #333;
+    font-size: 16px;
+}
+
+nav a:hover {
+    color: #007bff;
+}
