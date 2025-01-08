@@ -1,23 +1,47 @@
-SELECT 
-    fk.name AS ForeignKeyName,
-    tp.name AS ParentTable,
-    cp.name AS ParentColumn,
-    tr.name AS ReferencedTable,
-    cr.name AS ReferencedColumn
-FROM sys.foreign_keys fk
-INNER JOIN sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
-INNER JOIN sys.tables tp ON fkc.parent_object_id = tp.object_id
-INNER JOIN sys.columns cp ON fkc.parent_object_id = cp.object_id AND fkc.parent_column_id = cp.column_id
-INNER JOIN sys.tables tr ON fkc.referenced_object_id = tr.object_id
-INNER JOIN sys.columns cr ON fkc.referenced_object_id = cr.object_id AND fkc.referenced_column_id = cr.column_id
-WHERE tr.name = 'Attendees';
+CREATE TRIGGER AfterStudentInsert
+ON Student
+AFTER INSERT
+AS
+BEGIN
+    DECLARE @StudentID INT;
+    DECLARE @FullName NVARCHAR(150);
+    DECLARE @Branch NVARCHAR(50);
+    DECLARE @Marks INT;
+    DECLARE @Location NVARCHAR(255);
 
+    -- Iterate through inserted rows
+    DECLARE cur CURSOR FOR
+        SELECT StudentID, FirstName, MiddleName, LastName, Branch, Marks
+        FROM inserted;
 
-ALTER TABLE Tickets DROP CONSTRAINT FK_Tickets_Attendees;
+    OPEN cur;
 
+    FETCH NEXT FROM cur INTO @StudentID, @FullName, @Branch, @Marks;
 
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        -- Combine Full Name
+        SET @FullName = CONCAT(@FirstName, ' ', @MiddleName, ' ', @LastName);
 
-ALTER TABLE Tickets 
-ADD CONSTRAINT FK_Tickets_Attendees FOREIGN KEY (AttendeeID) REFERENCES Attendees(AttendeeID);
+        -- Retrieve Location
+        SELECT @Location = StudentAddress
+        FROM Address
+        WHERE StudentID = @StudentID;
 
-EXEC sp_help 'Attendees';
+        -- If Marks >= 40, execute the procedure
+        IF @Marks >= 40
+        BEGIN
+            EXEC AddToStudentStats
+                @StudentID = @StudentID,
+                @FullName = @FullName,
+                @Branch = @Branch,
+                @Percentage = @Marks,
+                @Location = @Location;
+        END;
+
+        FETCH NEXT FROM cur INTO @StudentID, @FullName, @Branch, @Marks;
+    END;
+
+    CLOSE cur;
+    DEALLOCATE cur;
+END;
